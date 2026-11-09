@@ -7,6 +7,8 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>Kalkulator eFaktur</title>
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};</script>
+<script defer src="/_vercel/insights/script.js"></script>
 <style>
 :root{--bg:#f5f6f8;--surface:#fff;--text:#15171a;--muted:#727781;--line:#e6e8ec;--accent:#111827;--accent2:#1f2937;--danger:#b42318;--soft:#f1f3f5;--ok:#067647;--radius:18px;--shadow:0 10px 32px rgba(16,24,40,.07)}
 *{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}.wrap{width:min(1120px,100%);margin:0 auto;padding:22px 18px 56px}button,input{font:inherit}button{cursor:pointer}
@@ -347,7 +349,7 @@ function render(){
   const has=items.length>0; document.getElementById('copyBtn').style.display=has?'inline-flex':'none';document.getElementById('shareBtn').style.display=has&&navigator.share?'inline-flex':'none';
 }
 function normalizePrice(){const n=parseRp(priceEl.value);priceEl.value=n?numberFmt.format(n):'';}
-function addItem(){const gross=parseRp(priceEl.value);if(!gross){priceEl.focus();showToast('Masukkan harga jual terlebih dahulu');return;}items.push({desc:descEl.value.trim(),gross,mode:currentMode,pph23:currentPph23});saveState();descEl.value='';priceEl.value='';descEl.focus();render();showToast(currentMode==='exclusive'?'Perhitungan sebelum PPN ditambahkan':'Perhitungan ditambahkan');}
+function addItem(){const gross=parseRp(priceEl.value);if(!gross){priceEl.focus();showToast('Masukkan harga jual terlebih dahulu');return;}items.push({desc:descEl.value.trim(),gross,mode:currentMode,pph23:currentPph23});saveState();descEl.value='';priceEl.value='';descEl.focus();render();showToast(currentMode==='exclusive'?'Perhitungan sebelum PPN ditambahkan':'Perhitungan ditambahkan');va('event',{name:'calculate_added',data:{mode:currentMode}});}
 function summaryText(){
   if(!items.length)return 'Belum ada perhitungan di Kalkulator eFaktur.';
   const t=totals(); let out=['KALKULATOR EFAKTUR',''];
@@ -359,20 +361,20 @@ function downloadCsv(){
   if(!items.length){showToast('Belum ada data untuk diekspor');return;}
   const head=['No','Nama Barang/Jasa','Mode Harga','PPh23','Harga Jual','Harga Barang','DPP','PPN 12%','Jumlah Bersih'];const lines=[head.map(csvEscape).join(',')];
   items.forEach((it,i)=>{const c=calc(it.gross,it.mode||'inclusive',it.pph23!==false);lines.push([i+1,it.desc||'Tanpa nama',modeLabel(c.mode),c.pph23?'2%':'Tidak dipotong',c.gross,c.barang,c.dpp,c.ppn,c.net].map(csvEscape).join(','));});
-  const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`kalkulatur-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(a.href);showToast('File CSV berhasil dibuat');
+  const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`kalkulatur-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(a.href);showToast('File CSV berhasil dibuat');va('event',{name:'export_csv'});
 }
-async function copySummary(){try{await navigator.clipboard.writeText(summaryText());showToast('Hasil disalin');}catch(_){showToast('Salin tidak tersedia di browser ini');}}
+async function copySummary(){try{await navigator.clipboard.writeText(summaryText());showToast('Hasil disalin');va('event',{name:'copy_result'});}catch(_){showToast('Salin tidak tersedia di browser ini');}}
 function openShareModal(){shareModal.classList.add('is-open');shareModal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');}
 function closeShareModal(){shareModal.classList.remove('is-open');shareModal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');}
-async function shareWhatsapp(){const text=items.length?`${summaryText()}`:`Kalkulator eFaktur — hitung DPP, PPN, dan PPh23 dengan mudah.`;const message=`${text}\n\n${location.href}`;window.open(`https://wa.me/?text=${encodeURIComponent(message)}`,'_blank','noopener,noreferrer');closeShareModal();}
-async function shareUrl(){try{await navigator.clipboard.writeText(location.href);showToast('URL berhasil disalin');closeShareModal();}catch(_){showToast('Salin URL tidak tersedia di browser ini');}}
+async function shareWhatsapp(){const text=items.length?`${summaryText()}`:`Kalkulator eFaktur — hitung DPP, PPN, dan PPh23 dengan mudah.`;const message=`${text}\n\n${location.href}`;window.open(`https://wa.me/?text=${encodeURIComponent(message)}`,'_blank','noopener,noreferrer');closeShareModal();va('event',{name:'share_whatsapp'});}
+async function shareUrl(){try{await navigator.clipboard.writeText(location.href);showToast('URL berhasil disalin');closeShareModal();va('event',{name:'share_copy_url'});}catch(_){showToast('Salin URL tidak tersedia di browser ini');}}
 priceEl.addEventListener('input',normalizePrice);priceEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addItem();}});descEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();priceEl.focus();}});
 document.getElementById('addBtn').onclick=addItem;
 pphToggleEl.onchange=()=>{currentPph23=pphToggleEl.checked;savePph();updateModeUI();};
 modeInclusiveEl.onclick=()=>{currentMode='inclusive';saveMode();updateModeUI();};
 modeExclusiveEl.onclick=()=>{currentMode='exclusive';saveMode();updateModeUI();};
 document.getElementById('clearBtn').onclick=()=>{if(!items.length){showToast('Belum ada data');return;}if(confirm('Hapus semua perhitungan di perangkat ini?')){items=[];saveState();render();showToast('Semua perhitungan dihapus');}};
-document.getElementById('saveBtn').onclick=()=>{if(!items.length){showToast('Belum ada data untuk disimpan');return;}window.print();};
+document.getElementById('saveBtn').onclick=()=>{if(!items.length){showToast('Belum ada data untuk disimpan');return;}va('event',{name:'export_pdf'});window.print();};
 document.getElementById('csvBtn').onclick=downloadCsv;
 document.getElementById('copyBtn').onclick=copySummary;
 document.getElementById('shareBtn').onclick=openShareModal;
